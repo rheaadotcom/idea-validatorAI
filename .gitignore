@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+
+# next.js build
+.next/
+
+# environment variables (VERY IMPORTANT 🔐)
+.env.local
+.env
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# system files
+.DS_Store
+Thumbs.db
+
+# optional (lock file if you want smaller repo)
+package-lock.json
