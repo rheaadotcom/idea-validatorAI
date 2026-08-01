@@ -19,23 +19,25 @@ function safeJsonResponse(data, status = 200) {
 }
 
 // ─────────────────────────────────────────────
-// Lazy-loaded OpenAI client
+// Lazy-loaded Groq client (never crash on import)
 // ─────────────────────────────────────────────
-let openai = null;
-let openaiInitAttempted = false;
+let groq = null;
+let groqInitAttempted = false;
 
-async function getOpenAIClient() {
-  if (openaiInitAttempted) return openai;
-  openaiInitAttempted = true;
+async function getGroqClient() {
+  if (groqInitAttempted) return groq;
+  groqInitAttempted = true;
   try {
-    const { default: OpenAI } = await import('openai');
-    if (process.env.OPENAI_API_KEY) {
-      openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const { Groq } = await import('groq-sdk');
+    if (process.env.GROQ_API_KEY) {
+      groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    } else {
+      console.warn('[PITCH API] No GROQ_API_KEY found — demo mode active.');
     }
   } catch (e) {
-    console.warn('[PITCH API] OpenAI SDK not available:', e?.message);
+    console.warn('[PITCH API] Groq SDK not available:', e?.message);
   }
-  return openai;
+  return groq;
 }
 
 // ─────────────────────────────────────────────
@@ -129,8 +131,8 @@ export async function POST(request, context) {
 
     let pitchDeck = null;
 
-    // ── Attempt OpenAI call (with circuit breaker + timeout) ──
-    const client = await getOpenAIClient();
+    // ── Attempt Groq call (with circuit breaker + timeout) ──
+    const client = await getGroqClient();
     if (client && !isPitchCircuitOpen()) {
       try {
         const prompt = `
@@ -157,7 +159,7 @@ export async function POST(request, context) {
             { role: 'system', content: 'You are an expert VC. ONLY return valid JSON.' },
             { role: 'user', content: prompt },
           ],
-          model: 'gpt-4o-mini',
+          model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
           response_format: { type: 'json_object' },
         }, { signal: controller.signal });
 
@@ -166,14 +168,14 @@ export async function POST(request, context) {
         const rawContent = completion?.choices?.[0]?.message?.content;
         if (rawContent) {
           pitchDeck = JSON.parse(rawContent);
-          console.log('[PITCH POST] OpenAI pitch deck generated for:', idea.title);
+          console.log('[PITCH POST] Groq pitch deck generated for:', idea.title);
         } else {
-          throw new Error('Empty response from OpenAI');
+          throw new Error('Empty response from Groq');
         }
       } catch (aiError) {
         const errMsg = aiError?.message || aiError?.code || 'Unknown error';
         tripPitchCircuit(errMsg);
-        console.warn('[PITCH POST] OpenAI failed, falling back to demo:', errMsg);
+        console.warn('[PITCH POST] Groq failed, falling back to demo:', errMsg);
       }
     }
 

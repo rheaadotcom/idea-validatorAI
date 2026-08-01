@@ -5,26 +5,26 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 // ─────────────────────────────────────────────
-// Lazy-loaded OpenAI client (never crash on import)
+// Lazy-loaded Groq client (never crash on import)
 // ─────────────────────────────────────────────
-let openai = null;
-let openaiInitAttempted = false;
+let groq = null;
+let groqInitAttempted = false;
 
-async function getOpenAIClient() {
-  if (openaiInitAttempted) return openai;
-  openaiInitAttempted = true;
+async function getGroqClient() {
+  if (groqInitAttempted) return groq;
+  groqInitAttempted = true;
   try {
-    const { default: OpenAI } = await import('openai');
-    if (process.env.OPENAI_API_KEY) {
-      openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      console.log('[IDEAS API] OpenAI client initialized.');
+    const { Groq } = await import('groq-sdk');
+    if (process.env.GROQ_API_KEY) {
+      groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      console.log('[IDEAS API] Groq client initialized.');
     } else {
-      console.warn('[IDEAS API] No OPENAI_API_KEY found — demo mode active.');
+      console.warn('[IDEAS API] No GROQ_API_KEY found — demo mode active.');
     }
   } catch (e) {
-    console.warn('[IDEAS API] OpenAI SDK not available, running in demo mode:', e?.message);
+    console.warn('[IDEAS API] Groq SDK not available, running in demo mode:', e?.message);
   }
-  return openai;
+  return groq;
 }
 
 // ─────────────────────────────────────────────
@@ -257,14 +257,14 @@ export async function POST(request) {
     let analysis = null;
     let isDemo = false;
 
-    // ── Attempt OpenAI call (with circuit breaker + timeout) ──
-    const client = await getOpenAIClient();
+    // ── Attempt Groq call (with circuit breaker + timeout) ──
+    const client = await getGroqClient();
     if (client && !isCircuitOpen()) {
       try {
         const prompt = `
           You are a senior startup consultant and VC analyst.
           Analyze the startup idea and return STRICT JSON:
-          
+
           Idea Title: ${title}
           Idea Description: ${description}
 
@@ -289,7 +289,7 @@ export async function POST(request) {
           - Competitors must be real
           - Tech stack must be practical
           - Profitability score must be between 0–100
-          
+
           ONLY RETURN JSON
         `;
 
@@ -302,7 +302,7 @@ export async function POST(request) {
             { role: 'system', content: 'You are a senior startup consultant and VC analyst. ONLY return valid JSON.' },
             { role: 'user', content: prompt },
           ],
-          model: 'gpt-4o-mini',
+          model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
           response_format: { type: 'json_object' },
         }, { signal: controller.signal });
 

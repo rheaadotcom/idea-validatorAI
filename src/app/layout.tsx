@@ -14,7 +14,7 @@ export const metadata = {
   description: 'Validate startup ideas in seconds with AI‑powered market sizing, competitor mapping, SWOT analysis, and automated 10‑slide pitch deck generation.',
 };
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <body className={`${inter.className} min-h-screen flex flex-col bg-dark-bg text-dark-text`}>

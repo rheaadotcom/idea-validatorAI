@@ -104,8 +104,9 @@ async function main() {
   console.log('─'.repeat(45));
   console.log('');
 
+  const projectRoot = __dirname; // explicit project root
   const child = spawn('npx', ['next', 'dev', '-p', String(port)], {
-    cwd: __dirname,
+    cwd: projectRoot,
     stdio: 'inherit',
     shell: true,
     env: { ...process.env, PORT: String(port), NEXTAUTH_URL: `http://localhost:${port}` },

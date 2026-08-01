@@ -3,11 +3,14 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
+import { MongoDBAdapter } from '@next-auth/mongodb-adapter';
+import { getMongoClient } from '@/lib/mongodb';
 
 export const authOptions = {
-  providers: [
-    CredentialsProvider({
-      name: 'Credentials',
+  adapter: MongoDBAdapter(getMongoClient()),
+    providers: [
+      CredentialsProvider({
+        name: 'Credentials',
       credentials: {
         email: { label: 'Email', type: 'text', placeholder: 'jsmith@example.com' },
         password: { label: 'Password', type: 'password' },
